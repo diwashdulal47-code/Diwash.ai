@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diwash.ai</title>
+<style>
+body{margin:0;font-family:Arial;background:black;color:white;}
+#header{height:50px;background:linear-gradient(90deg,#6a00ff,#b300ff);display:flex;align-items:center;justify-content:center;position:relative;}
+#menuBtn{position:absolute;top:12px;right:15px;font-size:28px;cursor:pointer;z-index:100;}
+#userDisplay{position:absolute;left:10px;font-weight:bold;}
+#whatsnew{position:absolute;top:60px;width:100%;text-align:center;color:#90ee90;font-size:24px;}
+#chat{height:60vh;overflow-y:auto;padding:15px;margin-top:50px;}
+.msg{max-width:75%;padding:12px;margin:10px 0;border-radius:15px;line-height:1.4;}
+.user{background:#6a00ff;margin-left:auto;}
+.ai{background:#222;border:1px solid #6a00ff;}
+#inputBar{position:fixed;bottom:0;width:100%;display:flex;background:#111;padding:10px;align-items:center;}
+#input{flex:1;padding:12px;border:none;border-radius:20px;}
+#send{margin-left:10px;padding:12px 18px;background:#6a00ff;color:white;border:none;border-radius:20px;cursor:pointer;}
+.attachBtn{margin-left:5px;padding:10px;border:none;background:#222;color:white;border-radius:50%;cursor:pointer;}
+.slide{position:fixed;top:0;left:100%;width:100%;height:100%;background:black;padding:20px;transition:left 0.35s ease;z-index:20;overflow-y:auto;}
+.slide.active{left:0;}
+.back{margin-top:20px;color:lightblue;cursor:pointer;}
+textarea,input,select{width:90%;padding:10px;margin:5px 0;background:#111;color:white;border:1px solid #6a00ff;border-radius:5px;}
+button{cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span id="userDisplay"></span>
+  Diwash.ai
+  <div id="menuBtn" onclick="openSlide('menu')">☰</div>
+</div>
+
+<div id="whatsnew">WHAT'S NEW</div>
+
+<div id="chat"></div>
+
+<div id="inputBar">
+  <input id="input" placeholder="Type your question...">
+  <button id="send">Send</button>
+  <button class="attachBtn" onclick="attachFile('photo')">📷</button>
+  <button class="attachBtn" onclick="attachFile('video')">🎥</button>
+  <button class="attachBtn" onclick="attachFile('file')">📁</button>
+</div>
+
+<!-- MENU SLIDE -->
+<div id="menu" class="slide">
+  <h3>Menu</h3>
+  <p onclick="openSlide('signin')">1. Sign in</p>
+  <p onclick="openSlide('setting')">2. Setting</p>
+  <p onclick="openSlide('help')">3. Help</p>
+  <p onclick="openSlide('feedback')">4. Feedback</p>
+  <p onclick="openSlide('about')">About</p>
+  <p class="back" onclick="closeSlide(this)">Back</p>
+</div>
+
+<!-- SIGN IN -->
+<div id="signin" class="slide">
+  <h3>Sign in</h3>
+  <input id="email" placeholder="Google email">
+  <button id="signinBtn">Sign in</button>
+  <p class="back" onclick="closeSlide(this)">Back</p>
+</div>
+
+<!-- SETTING -->
+<div id="setting" class="slide">
+  <h3>Setting</h3>
+  <p onclick="addAccount()">Add another account</p>
+  <p>Language: 
+    <select id="lang" onchange="changeLanguage()">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="np">Nepali</option>
+      <option value="ru">Russian</option>
+    </select>
+  </p>
+  <p onclick="removeAccount()">Remove account</p>
+  <p class="back" onclick="closeSlide(this)">Back</p>
+</div>
+
+<!-- HELP -->
+<div id="help" class="slide">
+  <h3>Help</h3>
+  <input id="helpQ" placeholder="Ask your question">
+  <button onclick="askHelp()">Ask</button>
+  <div id="helpAnswer"></div>
+  <p class="back" onclick="closeSlide(this)">Back</p>
+</div>
+
+<!-- FEEDBACK -->
+<div id="feedback" class="slide">
+  <h3>Feedback</h3>
+  <textarea id="fbText" placeholder="Type feedback"></textarea>
+  <button onclick="sendFeedback()">Send</button>
+  <div id="fbList"></div>
+  <p class="back" onclick="closeSlide(this)">Back</p>
+</div>
+
+<!-- ABOUT -->
+<div id="about" class="slide">
+  <h3>About</h3>
+  <p>This AI tool is made by Dibbu (Diwash Dulal) with ChatGPT AI tool.<br>
+  Gmail: diwashd123@gmail.com<br>
+  YouTube: DIWASH<br>
+  Instagram: Diwash_7_7</p>
+  <p class="back" onclick="closeSlide(this)">Back</p>
+</div>
+
+<script>
+let chat=document.getElementById("chat");
+let input=document.getElementById("input");
+let sendBtn=document.getElementById("send");
+let userName="";
+let profilePic="";
+let accounts=JSON.parse(localStorage.getItem("accounts")||"[]");
+let developerEmail="diwashd123@gmail.com";
+
+/* Slides */
+function openSlide(id){
+  document.querySelectorAll(".slide").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.body.style.background="black";
+  document.getElementById("menuBtn").style.display="none";
+}
+function closeSlide(el){
+  el.closest(".slide").classList.remove("active");
+  document.body.style.background="black";
+  document.getElementById("menuBtn").style.display="block";
+}
+
+/* Sign in */
+sendBtn.addEventListener("click", send);
+document.getElementById("signinBtn").addEventListener("click", signIn);
+
+function signIn(){
+  let email=document.getElementById("email").value.trim();
+  if(!email){alert("Enter email"); return;}
+  let exists=accounts.find(a=>a.email===email);
+  if(!exists){
+    let name=prompt("Enter short name for account");
+    if(accounts.find(a=>a.name===name)){alert("Name already used"); return;}
+    let pic=prompt("Enter profile picture URL"); 
+    accounts.push({email,name,pic});
+    localStorage.setItem("accounts",JSON.stringify(accounts));
+    userName=name;
+    profilePic=pic;
+  } else {
+    userName=exists.name;
+    profilePic=exists.pic;
+  }
+  document.getElementById("userDisplay").innerText=userName;
+  closeSlide(document.getElementById("signin"));
+}
+
+/* Add account */
+function addAccount(){openSlide('signin');}
+
+/* Remove account */
+function removeAccount(){
+  let rem=prompt("Enter name to remove");
+  accounts=accounts.filter(a=>a.name!==rem);
+  localStorage.setItem("accounts",JSON.stringify(accounts));
+  alert("Account removed");
+}
+
+/* Language change */
+function changeLanguage(){alert("Language changed (demo)");}
+
+/* Attach files */
+function attachFile(type){alert("Attach "+type+" file (simulated)");}
+
+/* Chat */
+function send(){
+  if(!input.value) return;
+  addMsg(input.value,"user");
+  let txt=input.value;
+  input.value="";
+  answer(txt);
+}
+
+/* AI answering with simulated search */
+function answer(msg){
+  addMsg("Diwash.ai is searching... 🔎","ai");
+  setTimeout(()=>{
+    let res="";
+    let q=msg.toLowerCase();
+    if(q.includes("hello")||q.includes("hi")) res="Hello! How can I help you today?";
+    else if(q.includes("problem")||q.includes("issue")) res="Please explain your problem in detail.";
+    else if(q.includes("math")) res="Provide full math question, I can solve it step by step.";
+    else if(q.includes("code")||q.includes("program")) res="Give programming language and exact problem.";
+    else if(q.includes("who")||q.includes("what")||q.includes("where")||q.includes("when")||q.includes("how"))
+      res="Found relevant info for: "+msg+" (Simulated search).";
+    else res="Here's a suggestion based on your question: "+msg;
+    addMsg(res,"ai");
+  },2000);
+}
+
+/* Add message */
+function addMsg(text,type){
+  let div=document.createElement("div");
+  div.className="msg "+type;
+  div.innerText=text;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+/* Help */
+function askHelp(){
+  let q=document.getElementById("helpQ").value;
+  if(!q) return;
+  addMsg("Help question: "+q,"user");
+  addMsg("Diwash.ai answer: Try carefully and research online.","ai");
+  document.getElementById("helpQ").value="";
+}
+
+/* Feedback */
+function sendFeedback(){
+  let fb=document.getElementById("fbText").value;
+  if(!fb) return;
+  let list=JSON.parse(localStorage.getItem("feedback")||"[]");
+  list.push({name:userName,feedback:fb});
+  localStorage.setItem("feedback",JSON.stringify(list));
+  document.getElementById("fbText").value="";
+  showFeedback();
+}
+function showFeedback(){
+  let devAcc=accounts.find(a=>a.email===developerEmail);
+  if(devAcc && devAcc.name===userName){
+    let list=JSON.parse(localStorage.getItem("feedback")||"[]");
+    let box=document.getElementById("fbList");
+    box.innerHTML="";
+    list.forEach((f,i)=>{box.innerHTML+=`<p>${i+1}. ${f.name}: ${f.feedback}</p>`;});
+  }
+}
+</script>
+
+</body>
+</html>
+<!-- Real-time AI answer section -->
+<script>
+const chat=document.getElementById("chat");
+const input=document.getElementById("input");
+const sendBtn=document.getElementById("send");
+
+// Replace with your OpenAI API key
+const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY";
+
+sendBtn.addEventListener("click", async ()=>{
+  const msg=input.value.trim();
+  if(!msg) return;
+  
+  addMsg(msg,"user"); // Show user message
+  input.value="";
+  
+  // Show searching message
+  const searchingMsg=document.createElement("div");
+  searchingMsg.className="msg ai";
+  searchingMsg.innerText="Diwash.ai is searching... 🔎";
+  chat.appendChild(searchingMsg);
+  chat.scrollTop=chat.scrollHeight;
+  
+  try {
+    // Call OpenAI API
+    const res = await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+OPENAI_API_KEY
+      },
+      body: JSON.stringify({
+        model:"gpt-4",
+        messages:[{role:"user", content: msg}],
+        temperature:0.7
+      })
+    });
+    
+    const data = await res.json();
+    const answer = data.choices[0].message.content;
+    
+    // Remove searching message
+    searchingMsg.remove();
+    
+    addMsg(answer,"ai"); // Show AI answer
+    
+  } catch(e){
+    searchingMsg.remove();
+    console.error(e);
+    addMsg("Sorry, Diwash.ai could not fetch data. Check your internet or API key.","ai");
+  }
+});
+
+// Function to add message to chat
+function addMsg(text,type){
+  const div=document.createElement("div");
+  div.className="msg "+type;
+  div.innerText=text;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+</script>
